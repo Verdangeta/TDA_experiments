@@ -6,6 +6,47 @@ from scipy.stats import entropy
 from tqdm import tqdm
 from sklearn.metrics import pairwise_distances
 
+gaus_kernel = kernel = lambda x: np.exp(-np.sum(x**2,axis = 1)/2)/(2*np.pi)
+
+# Symetrical KL distence, which we use as loss function.
+def sym_KL(y_true, y_pred):
+    loss = tf.keras.losses.KLDivergence()
+    return (loss(y_true, y_pred) + loss(y_pred, y_true))/2
+
+
+def K_H(h, kernel, u):
+    return  kernel(u/h)/(h**2)
+    
+
+## For estimatinng optimal bandwidth parameter we need to calculate K_H between all our diagrams.
+def calculate_K_Hs(
+                diagrams,
+                kernel,
+                h = 0.1):
+    
+    N = len(diagrams)
+    result = np.empty((N, N), dtype=object)
+    result_solo = np.empty((N, N), dtype=object)
+
+    for i in range(N):
+        for j in range(N):
+            
+            res = []
+            res_solo = []
+            for point in diagrams[i]:
+                res.append(K_H(h, kernel, point-diagrams[j]))
+                res_solo.append(K_H(h, kernel, point))
+                
+            res = np.stack(res)
+            result[i,j] = res.copy()
+            result_solo[i, j] = res_solo.copy()
+    return result, result_solo
+            
+
+
+
+
+# Special DenseRagged layer for processing 2d-tensors with not fixed first dimmension
 class DenseRagged(tf.keras.layers.Layer):
     def __init__(self, units, use_bias=True, activation='linear', **kwargs):
         super(DenseRagged, self).__init__(**kwargs)
@@ -27,7 +68,8 @@ class DenseRagged(tf.keras.layers.Layer):
             outputs = tf.ragged.map_flat_values(tf.nn.bias_add, outputs, self.bias)
         outputs = tf.ragged.map_flat_values(self.activation, outputs)
         return outputs
-
+        
+# The next layer after DenseRagged to transoform not fixed tennsor innto features vector.
 class PermopRagged(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(PermopRagged, self).__init__(**kwargs)
@@ -42,7 +84,7 @@ class PermopRagged(tf.keras.layers.Layer):
 
 
 
-
+# Calculating distance matrix on gpu
 def pdist_gpu(a, b, device = 'cuda:0'):
     A = torch.tensor(a, dtype = torch.float64)
     B = torch.tensor(b, dtype = torch.float64)
@@ -90,6 +132,7 @@ def sep_dist(a, b, pdist_device = 'cpu'):
 
     return apr_d
 
+# My functionn for calculated distence between two measures on square 1x1 with different methods.
 def measure_dist(dist_initial, dist_predicted, resolution = 50, method = "Wasserstein", epsilon = 1e-10):
     assert resolution == np.sqrt(len(dist_initial[0])) and resolution == np.sqrt(len(dist_predicted[0])), "Wrong shape!!"
 
@@ -135,5 +178,43 @@ def measure_dist(dist_initial, dist_predicted, resolution = 50, method = "Wasser
 
             kl_divergence = entropy(p, q)
             distances.append(kl_divergence)
+    elif method == "KL_sym":
+        for i in tqdm(range(len(dist_predicted))):
+            q = np.float64(dist_predicted[i]).flatten()
+        
+            p = np.float64(dist_initial[i]).flatten()
+
+            p = p/p.sum()
+            q = q/q.sum()
+
+            p = np.clip(p, epsilon, None)
+            q = np.clip(q, epsilon, None)
+
+            kl_divergence = (entropy(p, q) + entropy(q, p))/2
+            distances.append(kl_divergence)
     print(f"Mean {method} distance: {np.mean(distances)}")
     return distances
+    
+### Realization of bandwidht estimation from paper
+def estimate_optimal_bandwidth(diagrams,
+                               kernel,
+                               K_Hs, K_H_solo,
+                               h_list = [0.1, 0.2, 0.3]):
+    N = len(diagrams)
+    
+    right_part = 0
+    left_part = 0
+    
+    for i in range(N):
+        for j in range(N):
+            if j!=i:
+                n_i = diagrams[i].shape[0]
+                n_j = diagrams[j].shape[0]
+                p_i_j = np.sum(K_Hs[i , j])/(n_i*n_j)
+            
+        right_part += p_i_j
+
+    right_part = -right_part * 2/(N*(N-1))
+    
+    
+
