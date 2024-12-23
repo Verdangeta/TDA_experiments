@@ -133,7 +133,7 @@ def sep_dist(a, b, pdist_device = 'cpu'):
     return apr_d
 
 # My functionn for calculated distence between two measures on square 1x1 with different methods.
-def measure_dist(dist_initial, dist_predicted, resolution = 50, method = "Wasserstein", epsilon = 1e-10):
+def measure_dist(dist_initial, dist_predicted, resolution = 50, method = "Wasserstein", epsilon = 1e-8, verbose = False):
     assert resolution == np.sqrt(len(dist_initial[0])) and resolution == np.sqrt(len(dist_predicted[0])), "Wrong shape!!"
 
     distances = []
@@ -148,7 +148,7 @@ def measure_dist(dist_initial, dist_predicted, resolution = 50, method = "Wasser
         M = ot.dist(coorinates, coorinates)
         M /= M.max()
         
-        for i in tqdm(range(len(dist_predicted))):
+        for i in tqdm(range(len(dist_predicted)), disable = ~verbose):
             xt = np.float64(dist_predicted[i])
         
             xs = np.float64(dist_initial[i])
@@ -165,7 +165,7 @@ def measure_dist(dist_initial, dist_predicted, resolution = 50, method = "Wasser
             w_distance = ot.emd2(xt, xs, M)
             distances.append(w_distance)
     elif method == "KL":
-        for i in tqdm(range(len(dist_predicted))):
+        for i in tqdm(range(len(dist_predicted)), disable = ~verbose):
             q = np.float64(dist_predicted[i]).flatten()
         
             p = np.float64(dist_initial[i]).flatten()
@@ -179,7 +179,7 @@ def measure_dist(dist_initial, dist_predicted, resolution = 50, method = "Wasser
             kl_divergence = entropy(p, q)
             distances.append(kl_divergence)
     elif method == "KL_sym":
-        for i in tqdm(range(len(dist_predicted))):
+        for i in tqdm(range(len(dist_predicted)), disable = ~verbose):
             q = np.float64(dist_predicted[i]).flatten()
         
             p = np.float64(dist_initial[i]).flatten()
@@ -192,7 +192,8 @@ def measure_dist(dist_initial, dist_predicted, resolution = 50, method = "Wasser
 
             kl_divergence = (entropy(p, q) + entropy(q, p))/2
             distances.append(kl_divergence)
-    print(f"Mean {method} distance: {np.mean(distances)}")
+    if verbose == True:
+        print(f"Mean {method} distance: {np.mean(distances)}")
     return distances
     
 ### Realization of bandwidht estimation from paper
