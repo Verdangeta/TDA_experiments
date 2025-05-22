@@ -457,7 +457,44 @@ complects_of_data_test = [[tf_data_test_1, tf_data_test_2, pdist_test_reducted_p
 
 names = ["PCA", "MAX", "QUANT"]
 
-for train_data, test_data, name in zip(complects_of_data_train, complects_of_data_test, names):
+for train_data, test_data, name in tqdm(zip(complects_of_data_train, complects_of_data_test, names), desc = "Training models "):
+
+    # Объединяем данные в датасет
+    dataset = tf.data.Dataset.from_tensor_slices((*train_data, PI_train))
+    
+    # Перемешиваем
+    dataset = dataset.shuffle(len(PI_train), seed=seed)
+    
+    # Разбиваем на train и val
+    train_size = int(0.9 * len(PI_train))
+    train_dataset = dataset.take(train_size)
+    val_dataset = dataset.skip(train_size)
+
+    # Разворачиваем обратно в списки
+    X_train_1, X_train_2, X_train_dist, y_train = zip(*train_dataset)
+    X_train_1, X_train_2, X_train_dist = (tf.ragged.constant(a, ragged_rank=1) for a in [X_train_1, X_train_2, X_train_dist])
+    y_train = np.array(y_train)
+    X_val_1, X_val_2, X_val_dist, y_val = zip(*val_dataset)
+    X_val_1, X_val_2, X_val_dist = (tf.ragged.constant(a, ragged_rank=1) for a in [X_val_1, X_val_2, X_val_dist])
+    y_val = np.array(y_val)
+    
+    print(y_train[0])
+    print(type(X_train_1), type(X_train_2), type(X_train_dist), type(y_train))
+    print(len(X_train_1), len(X_train_2), len(X_train_dist), len(y_train))
+    print(X_train_1[0].shape, X_train_2[0].shape, X_train_dist[0].shape, y_train[0].shape)
+
+    # X_train_1, X_val_1, X_train_2, X_val_2, X_train_dist, X_val_dist, y_train, y_val = train_test_split(*train_data,
+    #                                                                           PI_train, test_size=0.1,
+    #                                                                           random_state=seed)
+    
+    model, callback = create_model_with_distance_matrix(cloud_dim, n_features, patience = 100)
+    history = train_model(model, [X_train_1, X_train_2, X_train_dist],
+                          [X_val_1, X_val_2, X_val_dist], test_data, y_train, y_val, PI_test,
+                          callback, name, epochs = 200, logger = run)
+
+names = ["PCA", "MAX", "QUANT"]
+
+for train_data, test_data, name in tqdm(zip(complects_of_data_train, complects_of_data_test, names), desc = "Training models "):
 
     # Объединяем данные в датасет
     dataset = tf.data.Dataset.from_tensor_slices((*train_data, PI_train))
