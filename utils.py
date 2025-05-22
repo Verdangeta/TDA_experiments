@@ -43,9 +43,6 @@ def calculate_K_Hs(
     return result, result_solo
             
 
-
-
-
 # Special DenseRagged layer for processing 2d-tensors with not fixed first dimmension
 class DenseRagged(tf.keras.layers.Layer):
     def __init__(self, units, use_bias=True, activation='linear', **kwargs):
