@@ -1,0 +1,13 @@
+.ipynb_checkpoints/
+__pycache__/
+*.py[cod]
+.venv/
+.env
+Data/
+RipsNet_exp/
+density_exp/
+runs/
+external/
+*.h5
+*.keras
+*.ckpt
