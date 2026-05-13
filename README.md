@@ -3,9 +3,7 @@
 This repository contains the cleaned publication code for the paper:
 
 > Alexander Mironenko, Evgeny Burnaev, Serguei Barannikov, **The Density of Cross-Persistence Diagrams and Its Applications**. IEEE Xplore document [11417786](https://ieeexplore.ieee.org/document/11417786).
-
-The original repository had code split between two server branches (`master` and `ZH_exps`). This branch keeps only the files that correspond to experiments described in the paper, clears notebook outputs, removes scratch notebooks, and replaces server-specific experiment code with a safer CLI entry point.
-
+> 
 ## Repository contents
 
 | File | Paper section | Purpose |
@@ -20,8 +18,6 @@ The original repository had code split between two server branches (`master` and
 | `Topological_classifier.py` | Section VII | scikit-learn compatible topological feature generator for time series. |
 | `utils.py` | Shared | Cross-RipsNet layers, distance utilities, density losses, and metric helpers. |
 | `requirements.txt` | Setup | Python dependencies used by the notebooks and scripts. |
-
-Removed as publication noise: checkpoint files, notebook outputs, server-checking notebooks, generic time-series scratch work, curve-drawing scratch work, duplicate encoding experiments, and unrelated anti-noise/prototype notebooks.
 
 ## Setup
 
@@ -97,6 +93,4 @@ Use `--pdist-device cpu` for CPU-only runs. The resulting metrics are written to
 ## Notes for reviewers/reusers
 
 - All notebooks are cleared of outputs and execution counts.
-- No private experiment tracker credentials are required or stored.
-- Hard-coded server GPU selection cells were removed from notebooks.
 - `Data/`, `RipsNet_exp/`, `density_exp/`, and `runs/` are ignored by Git because they contain large downloaded or generated artifacts.
